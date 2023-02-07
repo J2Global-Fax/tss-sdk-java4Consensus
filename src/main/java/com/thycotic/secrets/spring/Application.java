@@ -1,11 +1,9 @@
 package com.thycotic.secrets.spring;
 
 import static java.lang.Integer.parseInt;
-
 import com.thycotic.secrets.server.spring.SecretServer;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static java.lang.String.format;
+import java.util.logging.Logger;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
@@ -16,9 +14,9 @@ import org.springframework.context.annotation.ComponentScan;
 @SpringBootApplication
 @ComponentScan("com.thycotic.secrets.server.spring")
 public class Application {
-    private final Logger log = LoggerFactory.getLogger(Application.class);
+    private final Logger log = Logger.getLogger(Application.class.getName());
 
-    @Value("${secret.id:#null}")
+    @Value("${secret.id:14888}")
     private String secretId;
 
 
@@ -27,10 +25,10 @@ public class Application {
     }
 
     @Bean
-    public CommandLineRunner runServer(final SecretServer secretServer) throws Exception {
+    public CommandLineRunner runServer(final SecretServer secretServer) {
         return args -> {
-            log.info("running with args \"{}\"; getSecret({}) -> {}", args, secretId,
-                    secretServer.getSecret(parseInt(secretId)).toString());
+            log.info(format("running with args \"%s\"; for secret ID:{}, got Secret({}) -> %s", args, secretId,
+                    secretServer.getSecret(parseInt(secretId)).toString()));
         };
     }
 }

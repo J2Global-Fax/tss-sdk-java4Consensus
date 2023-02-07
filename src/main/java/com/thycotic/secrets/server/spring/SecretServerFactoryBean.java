@@ -1,15 +1,17 @@
 package com.thycotic.secrets.server.spring;
 
-import static org.springframework.web.util.UriComponentsBuilder.fromUriString;
-
-import java.util.Arrays;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-
+import java.util.Arrays;
+import java.util.Map;
+import org.gradle.api.Project;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.client.ClientHttpRequestFactory;
 import org.springframework.http.client.InterceptingClientHttpRequestFactory;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
@@ -21,6 +23,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.DefaultUriBuilderFactory;
 import org.springframework.web.util.UriBuilderFactory;
+import static org.springframework.web.util.UriComponentsBuilder.fromUriString;
 
 /**
  * Creates an initializes a {@link SecretServer} object using Spring application
@@ -34,6 +37,7 @@ import org.springframework.web.util.UriBuilderFactory;
  * {@code secret_server.oauth2.token_url} for on-premises servers
  * <li>{@code secret_server.oauth2.username}
  * <li>{@code secret_server.oauth2.password}
+ * <li>{@code secret_server.oauth2.domain}
  * </ul>
  *
  * <p>
@@ -41,10 +45,15 @@ import org.springframework.web.util.UriBuilderFactory;
  * {@code application.properties} file in {@code src/main/resources} by default.
  *
  */
+//@SpringBootApplication
 @Component
 public class SecretServerFactoryBean implements FactoryBean<SecretServer>, InitializingBean {
-    public static final String DEFAULT_API_URL_TEMPLATE = "https://%s.secretservercloud.%s/api/v1",
-            DEFAULT_OAUTH2_TOKEN_URL_TEMPLATE = "https://%s.secretservercloud.%s/oauth2/token", DEFAULT_TLD = "com";
+    public static final String DEFAULT_API_URL_TEMPLATE = "https://%s.j2global.%s/SecretServer/api/v1";
+    public static final String DEFAULT_OAUTH2_TOKEN_URL_TEMPLATE = "https://%s.j2global.%s/SecretServer/oauth2/token";
+    public static final String DEFAULT_TENANT = "laxsecretserver";
+    public static final String DEFAULT_DOMAIN = "j2global";
+    public static final String DEFAULT_TLD = "com";
+
 
     static class AccessGrant {
         private String accessToken, refreshToken, tokenType;
@@ -69,13 +78,15 @@ public class SecretServerFactoryBean implements FactoryBean<SecretServer>, Initi
         public String getTokenType() {
             return tokenType;
         }
-    };
+    }
 
     private static final String GRANT_REQUEST_USERNAME_PROPERTY = "username";
 
     private static final String GRANT_REQUEST_PASSWORD_PROPERTY = "password";
 
     private static final String GRANT_REQUEST_GRANT_TYPE_PROPERTY = "grant_type";
+
+    private static final String GRANT_REQUEST_DOMAIN_PROPERTY = "domain";
 
     private static final String GRANT_REQUEST_GRANT_TYPE = "password";
 
@@ -94,6 +105,12 @@ public class SecretServerFactoryBean implements FactoryBean<SecretServer>, Initi
 
     @Value("${secret_server.oauth2.password}")
     private String password;
+    
+    @Value("${secret_server.oauth2.domain:"+DEFAULT_DOMAIN+"}")
+    private String domain;
+
+    private Project project;
+
 
     @Value("${secret_server.oauth2.token_url_template:" + DEFAULT_OAUTH2_TOKEN_URL_TEMPLATE + "}")
     private String tokenUrlTemplate;
@@ -101,7 +118,7 @@ public class SecretServerFactoryBean implements FactoryBean<SecretServer>, Initi
     @Value("${secret_server.oauth2.token_url:#{null}}")
     private String tokenUrl;
 
-    @Value("${secret_server.tenant:#{null}}")
+    @Value("${secret_server.tenant:" + DEFAULT_TENANT + "}")
     private String tenant;
 
     @Value("${secret_server.tld:" + DEFAULT_TLD + "}")
@@ -113,7 +130,7 @@ public class SecretServerFactoryBean implements FactoryBean<SecretServer>, Initi
     private UriBuilderFactory uriBuilderFactory;
 
     @Override
-    public void afterPropertiesSet() throws Exception {
+    public void afterPropertiesSet() {
         Assert.state(StringUtils.hasText(apiRootUrlTemplate) && StringUtils.hasText(tokenUrlTemplate)
                 || StringUtils.hasText(apiRootUrl) && StringUtils.hasText(tokenUrl) || StringUtils.hasText(tenant),
                 "Either secret_server.tenant or both of either secret_server.api_root_url and secret_server.oauth2.token_url or secret_server.api_root_url_template and secret_server.oauth2.token_url_template must be set.");
@@ -126,20 +143,36 @@ public class SecretServerFactoryBean implements FactoryBean<SecretServer>, Initi
             requestFactory = new SimpleClientHttpRequestFactory();
     }
 
-    private AccessGrant getAccessGrant() {
-        final MultiValueMap<String, String> request = new LinkedMultiValueMap<String, String>();
+    public void setProject(Project project)
+    {
+        this.project = project;
+    }
 
-        request.add(GRANT_REQUEST_USERNAME_PROPERTY, username);
-        request.add(GRANT_REQUEST_PASSWORD_PROPERTY, password);
-        request.add(GRANT_REQUEST_GRANT_TYPE_PROPERTY, GRANT_REQUEST_GRANT_TYPE);
-        return new RestTemplate().postForObject(
-                StringUtils.hasText(tenant) ? String.format(tokenUrlTemplate.replaceAll("/*$", ""), tenant, tld)
-                        : tokenUrl.replaceAll("/*$", ""),
-                request, AccessGrant.class);
+
+    private AccessGrant getAccessGrant() {
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+        final MultiValueMap<String, String> map = new LinkedMultiValueMap<>();
+        Map<String, ?> properties = project.getProperties();
+        map.add(GRANT_REQUEST_USERNAME_PROPERTY, (String) properties.get("secret_server.oauth2.username"));
+        map.add(GRANT_REQUEST_PASSWORD_PROPERTY, (String) properties.get("secret_server.oauth2.password"));
+        map.add(GRANT_REQUEST_GRANT_TYPE_PROPERTY, GRANT_REQUEST_GRANT_TYPE);
+        map.add(GRANT_REQUEST_DOMAIN_PROPERTY, (String) properties.get("secret_server.oauth2.domain"));
+
+        HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(
+                map, headers);
+        String url = StringUtils.hasText(tenant) ? String.format(tokenUrlTemplate.replaceAll("/*$", ""), tenant, tld)
+                : tokenUrl.replaceAll("/*$", "");
+
+        AccessGrant accessGrant = new RestTemplate().
+                postForObject(url, request, AccessGrant.class);
+        return accessGrant;
     }
 
     @Override
-    public SecretServer getObject() throws Exception {
+    public SecretServer getObject() {
         final SecretServer secretServer = new SecretServer();
 
         secretServer.setUriTemplateHandler(uriBuilderFactory);

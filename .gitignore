@@ -4,7 +4,6 @@ HELP.md
 mvnw
 mvnw.cmd
 
-target/
 !**/src/main/**
 !**/src/test/**
 
@@ -84,3 +83,9 @@ buildNumber.properties
 .history
 
 # End of https://www.gitignore.io/api/java,maven,visualstudiocode
+
+# Ignore Gradle project-specific cache directory
+.gradle
+
+# Ignore Gradle build output directory
+build

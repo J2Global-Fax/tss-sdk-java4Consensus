@@ -3,6 +3,7 @@ package com.thycotic.secrets.server.spring;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
 /**
@@ -12,6 +13,7 @@ import org.springframework.web.client.RestTemplate;
  *
  * <p>Use the {@link SecretServerFactoryBean} to create and initialize it.
  */
+@Component
 public class SecretServer extends RestTemplate {
 	private static final String SECRET_ID_URI = "/secrets/{id}";
 	private static final String SECRET_FILE_ATTACHMENT_URI = SECRET_ID_URI + "/fields/{slug}";
@@ -21,13 +23,12 @@ public class SecretServer extends RestTemplate {
 	 *
 	 * @param id - the integer ID of the secret to be fetched
 	 * @param fetchFileAttachments - whether to fetch {@code fileAttachments} so
-	 *        {@link Secret.Field#getValue()} returns the contents instead of the default placeholder
+
 	 * @return the {@link Secret} object
 	 */
 	public Secret getSecret(final int id, final boolean fetchFileAttachments) {
-		final Map<String, String> params = new HashMap<String, String>();
-
-		params.put("id", String.valueOf(id));
+		final Map<String, String> params = new HashMap<>();
+		params.put("id", Integer.toString(id));
 
 		final Secret secret = getForObject(SECRET_ID_URI, Secret.class, params);
 
