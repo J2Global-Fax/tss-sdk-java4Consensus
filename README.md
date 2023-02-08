@@ -1,6 +1,7 @@
 # tss-sdk-java4Consensus
 
-The 'tss-sdk-java4Consensus' is a Gradle plugin-in designed to connect to Consensus's [Thycotic Secret Server](https://laxsecretserver.j2global.com/secretserver/Login.aspx) (TSS) and retrieve secrets via REST API based on the ID of the secret on the Server.  The plugin can be found on Consensus's Maven Server at the URL
+
+The '[tss-sdk-java4Consensus](https://github.com/J2Global-Fax/tss-sdk-java4Consensus)' is a Gradle plugin-in designed to connect to Consensus's [Thycotic Secret Server](https://laxsecretserver.j2global.com/secretserver/Login.aspx) (TSS) and retrieve secrets via REST API based on the ID of the secret on the Server.  The plugin can be found on Consensus's Maven Server at the URL
 ``` 
 http://repository.j2.com/maven2/consensus-secret/consensus-secret.gradle.plugin/
 http://source.j2.com/maven2/consensus-secret/consensus-secret.gradle.plugin/
@@ -125,54 +126,40 @@ task obtainSecret {
 
 ## Build locally
 
-
-In the event the Plugin is not working as expected.  Simply log into the Thycotic Secret Server and download the file (e.g. the development file -- https://laxsecretserver.j2global.com/secretserver/app/#/secret/14888/general) and download the file ccaccountupdater.txt.  Rename the file to 'ccaccountupdater.properties' and place the file in the path
-``` 
-${projectDir}/src/main/resources/ccaccountupdater.properties
-```
-The build should work without the plugin once the file is placed.
-
 ###### Find ID of secret
-The ID can be obtained from logging into the Secret Server (using 'DOC Engineering/DEV Systems/DOC-J2Aura /ccaccountupdater-DEV ) and clicking 'ccaccounterupdater-DEV', the browser URL will be https://laxsecretserver.j2global.com/secretserver/app/#/secret/14888/general.  The number value (14888) before '/general' will be the ID for the secret.
 
-###### Configure ID for system
+The ID can be obtained from logging into the Secret Server, for example using 'DOC Engineering/DEV Systems/DOC-J2Aura /ccaccountupdater-DEV and clicking 'ccaccounterupdater-DEV', the browser URL will be https://laxsecretserver.j2global.com/secretserver/app/#/secret/14888/general.  The number value (14888) before '/general' will be the ID for the secret.
+
+###### Configure key IDs for system
 The expected key can have 1 of 2 values -- 1) for Development and 2) for Production.  For this environment, the expected values for this project are:
 ``` 
 # for production below
-#ccaccountupdater.properties.key=12345
+#ccaccountupdater.properties.key=14895
 
 # for development below
-ccaccountupdater.properties.key=54321
+ccaccountupdater.properties.key=14888
 ```
 At this time, the current key used is for Development.  The hash (#) is used for commenting.
 
 To keep development simple, the properties above for this can be in one of the following locations:
-1. C:\\Users\\{user.name}\\.gradle\\gradle.properties
-2. ${projectDirectory}\\gradle.properties
-3. ..\\${projectDirectory}\\gradle.properties
+1. C:\\Users\\{user.name}\\.gradle\\gradle.properties (typically private information such as username and password)
+2. ${projectDirectory}\\gradle.properties (typically project specific properties like name, version, description)
+3. ${projectDirectory}\\..\\gradle.properties (added to set keys to particular secret IDs based on key value)
 
 The 1st 2 items above are the standard locations for Gradle builds.  The 3rd item above is placing the gradle.properties file located at the parent of the project directory.  This will allow you to use certain directories for development and others for production builds.
 
-
 ###### setting up credentials
-To setup credentials for the secret server, from your home directory navigate to the (e.g. C:\Users\{user.name}\.gradle ) .gradle directory.  Inside this directory add the file 'gradle.properties' (or edit it if it is already there) and add to the file the following properties:
+To setup credentials for the secret server from your home directory navigate to the .gradle directory (e.g. C:\Users\{user.name}\.gradle ).  Inside this directory add the file 'gradle.properties' (or edit it if it is already there) and add to the file the following properties:
 ```
-secret_server.oauth2.username= put Consensus username here
-secret_server.oauth2.password= put Consensus password here
+secret_server.oauth2.username= put Consensus Thycotic Secret Server username here
+secret_server.oauth2.password= put Consensus Thycotic Secret Server password here
 secret_server.oauth2.domain=j2global
 secret_server.api_root_url = https://laxsecretserver.j2global.com/SecretServer/api/v1
 secret_server.oauth2.token_url = https://laxsecretserver.j2global.com/SecretServer/oauth2/token
 ```
 Make sure the file is set as read-only to the logged in user of the system -- Not others or others in the user's group.
 
-
-
-
-
-
 ### Prerequisites
-
-The SDK builds and runs on Java 8 or later.
 
 [Gradle](https://gradle.org/) is also required to build the SDK.
 
@@ -180,21 +167,10 @@ Gradle runs unit and integration tests during the build so the settings in
 `src/main/resources/application.properties` must be configured before the build
 will succeed.
 
-### Settings
-
-
-## Run the jar
-
 After the SDK application settings are configured the jar can be built:
 
 ```bash
 .\gradlew.bat clean build
 ```
-
-## Use the API
-
-Configure the `SecretServerFactoryBean` in the Spring
-[ApplicationContext](https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/context/ApplicationContext.html)
-then inject `SecretServer` where required.
 
 -------------------------------------------
